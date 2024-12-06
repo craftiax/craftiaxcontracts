@@ -25,13 +25,20 @@ contract CraftiaxNFT is
     event BaseURIChanged(string newBaseURI);
     event TokenBurned(address indexed burner, uint256 indexed tokenId);
     
+    // New events
+    event ContractPaused(address indexed operator, uint256 timestamp);
+    event ContractUnpaused(address indexed operator, uint256 timestamp);
+    event VerifierUpdated(address indexed oldVerifier, address indexed newVerifier);
+    event NonceInvalidated(address indexed user, uint256 nonce);
+    event BatchMintCompleted(uint256 startTokenId, uint256 endTokenId, address indexed minter);
+    
     // URI related storage
     string private _baseTokenURI;
     mapping(uint256 => bool) private _usedTokenIds;
 
     bytes32 private constant MINT_TYPEHASH = keccak256("SafeMint(address to,string uri,uint256 nonce,uint256 deadline)");
     mapping(address => uint256) private _nonces;
-    address private immutable _verifier;
+    address private _verifier;
 
     constructor(
         address initialOwner,
@@ -95,10 +102,12 @@ contract CraftiaxNFT is
 
     function pause() external onlyOwner {
         _pause();
+        emit ContractPaused(_msgSender(), block.timestamp);
     }
 
     function unpause() external onlyOwner {
         _unpause();
+        emit ContractUnpaused(_msgSender(), block.timestamp);
     }
 
     function _baseURI() internal view override returns (string memory) {
@@ -154,6 +163,21 @@ contract CraftiaxNFT is
 
     function nonces(address owner) public view returns (uint256) {
         return _nonces[owner];
+    }
+
+    function updateVerifier(address newVerifier) external onlyOwner {
+        require(newVerifier != address(0), "Invalid verifier address");
+        address oldVerifier = _verifier;
+        _verifier = newVerifier;
+        emit VerifierUpdated(oldVerifier, newVerifier);
+    }
+
+    // Optional: Add a function to invalidate nonce if needed
+    function invalidateNonce(address user) external onlyOwner {
+        require(user != address(0), "Invalid user address");
+        uint256 currentNonce = _nonces[user];
+        _nonces[user] = type(uint256).max; // Effectively invalidates all pending signatures
+        emit NonceInvalidated(user, currentNonce);
     }
 }
 

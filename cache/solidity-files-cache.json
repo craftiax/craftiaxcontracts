@@ -1336,8 +1336,8 @@
       ]
     },
     "C:\\craftiax_mvp\\Smart contracts\\contracts\\CNFT.sol": {
-      "lastModificationDate": 1733462202024,
-      "contentHash": "4195cbe4eb5904ad3cbfa06edc282ada",
+      "lastModificationDate": 1733462619738,
+      "contentHash": "32b552bec5483c1f1a1c5b6bc175eb49",
       "sourceName": "contracts/CNFT.sol",
       "solcConfig": {
         "version": "0.8.20",

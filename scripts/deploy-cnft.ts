@@ -45,15 +45,31 @@ async function deployOrLoadContract(): Promise<{ contract: CraftiaxNFT; wallet: 
       console.log("Using existing contract at:", deployedAddress);
       const factory = await hre.ethers.getContractFactory("CraftiaxNFT");
       return { 
-        contract: await factory.attach(deployedAddress) as CraftiaxNFT,
+        contract: (await factory.attach(deployedAddress)) as CraftiaxNFT,
         wallet: deployer 
       };
     }
   }
 
-  const baseURI = "https://api.craftiax.com/metadata/";
+  const baseURI = await prompt("Enter base URI (e.g., https://api.craftiax.com/metadata/): ");
+  const verifier = await prompt("Enter verifier address (default to deployer? yes/no): ");
+  
+  const verifierAddress = verifier.toLowerCase() === 'yes' ? 
+    deployer.address : 
+    await prompt("Enter custom verifier address: ");
+
   const factory = await hre.ethers.getContractFactory("CraftiaxNFT");
-  const cnft = await factory.deploy(deployer.address, baseURI, deployer.address);
+  console.log("\nDeploying CraftiaxNFT...");
+  console.log("Owner:", deployer.address);
+  console.log("Base URI:", baseURI);
+  console.log("Verifier:", verifierAddress);
+
+  const cnft = await factory.deploy(
+    deployer.address,  // initialOwner
+    baseURI,          // baseURI
+    verifierAddress   // verifier
+  );
+  
   await cnft.waitForDeployment();
   
   const address = await cnft.getAddress();
@@ -89,9 +105,11 @@ async function main() {
     console.log("4. Pause Contract");
     console.log("5. Unpause Contract");
     console.log("6. Burn NFT");
-    console.log("7. Exit");
+    console.log("7. Update Verifier");
+    console.log("8. Invalidate Nonce");
+    console.log("9. Exit");
 
-    const choice = await prompt("Select an action (1-7): ");
+    const choice = await prompt("Select an action (1-9): ");
 
     try {
       switch (choice) {
@@ -171,6 +189,22 @@ async function main() {
         }
 
         case "7": {
+          const newVerifier = await prompt("Enter new verifier address: ");
+          const tx = await cnft.updateVerifier(newVerifier);
+          await waitForTransaction(tx);
+          console.log("Verifier updated successfully");
+          break;
+        }
+
+        case "8": {
+          const userAddress = await prompt("Enter user address to invalidate nonce: ");
+          const tx = await cnft.invalidateNonce(userAddress);
+          await waitForTransaction(tx);
+          console.log("Nonce invalidated successfully");
+          break;
+        }
+
+        case "9": {
           rl.close();
           process.exit(0);
         }

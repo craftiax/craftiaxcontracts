@@ -31,6 +31,7 @@ export interface CraftiaxNFTInterface extends Interface {
       | "burn"
       | "eip712Domain"
       | "getApproved"
+      | "invalidateNonce"
       | "isApprovedForAll"
       | "name"
       | "nonces"
@@ -50,6 +51,7 @@ export interface CraftiaxNFTInterface extends Interface {
       | "transferFrom"
       | "transferOwnership"
       | "unpause"
+      | "updateVerifier"
   ): FunctionFragment;
 
   getEvent(
@@ -58,14 +60,19 @@ export interface CraftiaxNFTInterface extends Interface {
       | "ApprovalForAll"
       | "BaseURIChanged"
       | "BatchMetadataUpdate"
+      | "BatchMintCompleted"
+      | "ContractPaused"
+      | "ContractUnpaused"
       | "EIP712DomainChanged"
       | "MetadataUpdate"
+      | "NonceInvalidated"
       | "OwnershipTransferred"
       | "Paused"
       | "TokenBurned"
       | "TokenMinted"
       | "Transfer"
       | "Unpaused"
+      | "VerifierUpdated"
   ): EventFragment;
 
   encodeFunctionData(
@@ -84,6 +91,10 @@ export interface CraftiaxNFTInterface extends Interface {
   encodeFunctionData(
     functionFragment: "getApproved",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "invalidateNonce",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "isApprovedForAll",
@@ -137,6 +148,10 @@ export interface CraftiaxNFTInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "updateVerifier",
+    values: [AddressLike]
+  ): string;
 
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
@@ -147,6 +162,10 @@ export interface CraftiaxNFTInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getApproved",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "invalidateNonce",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -192,6 +211,10 @@ export interface CraftiaxNFTInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unpause", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "updateVerifier",
+    data: BytesLike
+  ): Result;
 }
 
 export namespace ApprovalEvent {
@@ -262,6 +285,54 @@ export namespace BatchMetadataUpdateEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace BatchMintCompletedEvent {
+  export type InputTuple = [
+    startTokenId: BigNumberish,
+    endTokenId: BigNumberish,
+    minter: AddressLike
+  ];
+  export type OutputTuple = [
+    startTokenId: bigint,
+    endTokenId: bigint,
+    minter: string
+  ];
+  export interface OutputObject {
+    startTokenId: bigint;
+    endTokenId: bigint;
+    minter: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace ContractPausedEvent {
+  export type InputTuple = [operator: AddressLike, timestamp: BigNumberish];
+  export type OutputTuple = [operator: string, timestamp: bigint];
+  export interface OutputObject {
+    operator: string;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace ContractUnpausedEvent {
+  export type InputTuple = [operator: AddressLike, timestamp: BigNumberish];
+  export type OutputTuple = [operator: string, timestamp: bigint];
+  export interface OutputObject {
+    operator: string;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace EIP712DomainChangedEvent {
   export type InputTuple = [];
   export type OutputTuple = [];
@@ -277,6 +348,19 @@ export namespace MetadataUpdateEvent {
   export type OutputTuple = [_tokenId: bigint];
   export interface OutputObject {
     _tokenId: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace NonceInvalidatedEvent {
+  export type InputTuple = [user: AddressLike, nonce: BigNumberish];
+  export type OutputTuple = [user: string, nonce: bigint];
+  export interface OutputObject {
+    user: string;
+    nonce: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -370,6 +454,19 @@ export namespace UnpausedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace VerifierUpdatedEvent {
+  export type InputTuple = [oldVerifier: AddressLike, newVerifier: AddressLike];
+  export type OutputTuple = [oldVerifier: string, newVerifier: string];
+  export interface OutputObject {
+    oldVerifier: string;
+    newVerifier: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export interface CraftiaxNFT extends BaseContract {
   connect(runner?: ContractRunner | null): CraftiaxNFT;
   waitForDeployment(): Promise<this>;
@@ -440,6 +537,12 @@ export interface CraftiaxNFT extends BaseContract {
   >;
 
   getApproved: TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
+
+  invalidateNonce: TypedContractMethod<
+    [user: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
   isApprovedForAll: TypedContractMethod<
     [owner: AddressLike, operator: AddressLike],
@@ -521,6 +624,12 @@ export interface CraftiaxNFT extends BaseContract {
 
   unpause: TypedContractMethod<[], [void], "nonpayable">;
 
+  updateVerifier: TypedContractMethod<
+    [newVerifier: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
@@ -558,6 +667,9 @@ export interface CraftiaxNFT extends BaseContract {
   getFunction(
     nameOrSignature: "getApproved"
   ): TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
+  getFunction(
+    nameOrSignature: "invalidateNonce"
+  ): TypedContractMethod<[user: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "isApprovedForAll"
   ): TypedContractMethod<
@@ -649,6 +761,9 @@ export interface CraftiaxNFT extends BaseContract {
   getFunction(
     nameOrSignature: "unpause"
   ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "updateVerifier"
+  ): TypedContractMethod<[newVerifier: AddressLike], [void], "nonpayable">;
 
   getEvent(
     key: "Approval"
@@ -679,6 +794,27 @@ export interface CraftiaxNFT extends BaseContract {
     BatchMetadataUpdateEvent.OutputObject
   >;
   getEvent(
+    key: "BatchMintCompleted"
+  ): TypedContractEvent<
+    BatchMintCompletedEvent.InputTuple,
+    BatchMintCompletedEvent.OutputTuple,
+    BatchMintCompletedEvent.OutputObject
+  >;
+  getEvent(
+    key: "ContractPaused"
+  ): TypedContractEvent<
+    ContractPausedEvent.InputTuple,
+    ContractPausedEvent.OutputTuple,
+    ContractPausedEvent.OutputObject
+  >;
+  getEvent(
+    key: "ContractUnpaused"
+  ): TypedContractEvent<
+    ContractUnpausedEvent.InputTuple,
+    ContractUnpausedEvent.OutputTuple,
+    ContractUnpausedEvent.OutputObject
+  >;
+  getEvent(
     key: "EIP712DomainChanged"
   ): TypedContractEvent<
     EIP712DomainChangedEvent.InputTuple,
@@ -691,6 +827,13 @@ export interface CraftiaxNFT extends BaseContract {
     MetadataUpdateEvent.InputTuple,
     MetadataUpdateEvent.OutputTuple,
     MetadataUpdateEvent.OutputObject
+  >;
+  getEvent(
+    key: "NonceInvalidated"
+  ): TypedContractEvent<
+    NonceInvalidatedEvent.InputTuple,
+    NonceInvalidatedEvent.OutputTuple,
+    NonceInvalidatedEvent.OutputObject
   >;
   getEvent(
     key: "OwnershipTransferred"
@@ -733,6 +876,13 @@ export interface CraftiaxNFT extends BaseContract {
     UnpausedEvent.InputTuple,
     UnpausedEvent.OutputTuple,
     UnpausedEvent.OutputObject
+  >;
+  getEvent(
+    key: "VerifierUpdated"
+  ): TypedContractEvent<
+    VerifierUpdatedEvent.InputTuple,
+    VerifierUpdatedEvent.OutputTuple,
+    VerifierUpdatedEvent.OutputObject
   >;
 
   filters: {
@@ -780,6 +930,39 @@ export interface CraftiaxNFT extends BaseContract {
       BatchMetadataUpdateEvent.OutputObject
     >;
 
+    "BatchMintCompleted(uint256,uint256,address)": TypedContractEvent<
+      BatchMintCompletedEvent.InputTuple,
+      BatchMintCompletedEvent.OutputTuple,
+      BatchMintCompletedEvent.OutputObject
+    >;
+    BatchMintCompleted: TypedContractEvent<
+      BatchMintCompletedEvent.InputTuple,
+      BatchMintCompletedEvent.OutputTuple,
+      BatchMintCompletedEvent.OutputObject
+    >;
+
+    "ContractPaused(address,uint256)": TypedContractEvent<
+      ContractPausedEvent.InputTuple,
+      ContractPausedEvent.OutputTuple,
+      ContractPausedEvent.OutputObject
+    >;
+    ContractPaused: TypedContractEvent<
+      ContractPausedEvent.InputTuple,
+      ContractPausedEvent.OutputTuple,
+      ContractPausedEvent.OutputObject
+    >;
+
+    "ContractUnpaused(address,uint256)": TypedContractEvent<
+      ContractUnpausedEvent.InputTuple,
+      ContractUnpausedEvent.OutputTuple,
+      ContractUnpausedEvent.OutputObject
+    >;
+    ContractUnpaused: TypedContractEvent<
+      ContractUnpausedEvent.InputTuple,
+      ContractUnpausedEvent.OutputTuple,
+      ContractUnpausedEvent.OutputObject
+    >;
+
     "EIP712DomainChanged()": TypedContractEvent<
       EIP712DomainChangedEvent.InputTuple,
       EIP712DomainChangedEvent.OutputTuple,
@@ -800,6 +983,17 @@ export interface CraftiaxNFT extends BaseContract {
       MetadataUpdateEvent.InputTuple,
       MetadataUpdateEvent.OutputTuple,
       MetadataUpdateEvent.OutputObject
+    >;
+
+    "NonceInvalidated(address,uint256)": TypedContractEvent<
+      NonceInvalidatedEvent.InputTuple,
+      NonceInvalidatedEvent.OutputTuple,
+      NonceInvalidatedEvent.OutputObject
+    >;
+    NonceInvalidated: TypedContractEvent<
+      NonceInvalidatedEvent.InputTuple,
+      NonceInvalidatedEvent.OutputTuple,
+      NonceInvalidatedEvent.OutputObject
     >;
 
     "OwnershipTransferred(address,address)": TypedContractEvent<
@@ -866,6 +1060,17 @@ export interface CraftiaxNFT extends BaseContract {
       UnpausedEvent.InputTuple,
       UnpausedEvent.OutputTuple,
       UnpausedEvent.OutputObject
+    >;
+
+    "VerifierUpdated(address,address)": TypedContractEvent<
+      VerifierUpdatedEvent.InputTuple,
+      VerifierUpdatedEvent.OutputTuple,
+      VerifierUpdatedEvent.OutputObject
+    >;
+    VerifierUpdated: TypedContractEvent<
+      VerifierUpdatedEvent.InputTuple,
+      VerifierUpdatedEvent.OutputTuple,
+      VerifierUpdatedEvent.OutputObject
     >;
   };
 }
