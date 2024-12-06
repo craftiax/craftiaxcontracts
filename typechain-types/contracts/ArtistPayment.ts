@@ -27,26 +27,52 @@ export interface ArtistPaymentInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "MAX_FEE_PERCENTAGE"
+      | "MAX_PAYMENT"
+      | "MIN_PAYMENT"
       | "craftiaxAddress"
       | "craftiaxFeePercentage"
+      | "eip712Domain"
+      | "generalMaxPayment"
+      | "generalMinPayment"
+      | "invalidateNonce"
+      | "isVerifiedArtist"
+      | "nonces"
       | "owner"
       | "payArtist"
       | "renounceOwnership"
+      | "setVerificationStatus"
+      | "setVerificationStatusBatch"
       | "transferOwnership"
       | "updateCraftiaxAddress"
       | "updateFeePercentage"
+      | "updatePaymentLimits"
+      | "updateVerifier"
+      | "verifiedMaxPayment"
   ): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic:
+      | "ArtistVerificationStatusUpdated"
       | "CraftiaxAddressUpdated"
+      | "EIP712DomainChanged"
       | "FeeUpdated"
+      | "NonceInvalidated"
       | "OwnershipTransferred"
+      | "PaymentLimitsUpdated"
       | "PaymentProcessed"
+      | "VerifierUpdated"
   ): EventFragment;
 
   encodeFunctionData(
     functionFragment: "MAX_FEE_PERCENTAGE",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "MAX_PAYMENT",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "MIN_PAYMENT",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -57,14 +83,43 @@ export interface ArtistPaymentInterface extends Interface {
     functionFragment: "craftiaxFeePercentage",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "eip712Domain",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "generalMaxPayment",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "generalMinPayment",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "invalidateNonce",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "isVerifiedArtist",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(functionFragment: "nonces", values: [AddressLike]): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "payArtist",
-    values: [AddressLike]
+    values: [AddressLike, BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setVerificationStatus",
+    values: [AddressLike, boolean]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setVerificationStatusBatch",
+    values: [AddressLike[], boolean]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
@@ -78,9 +133,29 @@ export interface ArtistPaymentInterface extends Interface {
     functionFragment: "updateFeePercentage",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "updatePaymentLimits",
+    values: [BigNumberish, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "updateVerifier",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "verifiedMaxPayment",
+    values?: undefined
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "MAX_FEE_PERCENTAGE",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "MAX_PAYMENT",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "MIN_PAYMENT",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -91,10 +166,39 @@ export interface ArtistPaymentInterface extends Interface {
     functionFragment: "craftiaxFeePercentage",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "eip712Domain",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "generalMaxPayment",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "generalMinPayment",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "invalidateNonce",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "isVerifiedArtist",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "nonces", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "payArtist", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setVerificationStatus",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setVerificationStatusBatch",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -109,6 +213,31 @@ export interface ArtistPaymentInterface extends Interface {
     functionFragment: "updateFeePercentage",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "updatePaymentLimits",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "updateVerifier",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "verifiedMaxPayment",
+    data: BytesLike
+  ): Result;
+}
+
+export namespace ArtistVerificationStatusUpdatedEvent {
+  export type InputTuple = [artist: AddressLike, isVerified: boolean];
+  export type OutputTuple = [artist: string, isVerified: boolean];
+  export interface OutputObject {
+    artist: string;
+    isVerified: boolean;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace CraftiaxAddressUpdatedEvent {
@@ -123,11 +252,34 @@ export namespace CraftiaxAddressUpdatedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace EIP712DomainChangedEvent {
+  export type InputTuple = [];
+  export type OutputTuple = [];
+  export interface OutputObject {}
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace FeeUpdatedEvent {
   export type InputTuple = [newFee: BigNumberish];
   export type OutputTuple = [newFee: bigint];
   export interface OutputObject {
     newFee: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace NonceInvalidatedEvent {
+  export type InputTuple = [user: AddressLike, currentNonce: BigNumberish];
+  export type OutputTuple = [user: string, currentNonce: bigint];
+  export interface OutputObject {
+    user: string;
+    currentNonce: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -148,21 +300,59 @@ export namespace OwnershipTransferredEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace PaymentLimitsUpdatedEvent {
+  export type InputTuple = [
+    generalMin: BigNumberish,
+    generalMax: BigNumberish,
+    verifiedMax: BigNumberish
+  ];
+  export type OutputTuple = [
+    generalMin: bigint,
+    generalMax: bigint,
+    verifiedMax: bigint
+  ];
+  export interface OutputObject {
+    generalMin: bigint;
+    generalMax: bigint;
+    verifiedMax: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace PaymentProcessedEvent {
   export type InputTuple = [
     artist: AddressLike,
     artistAmount: BigNumberish,
-    craftiaxFee: BigNumberish
+    craftiaxFee: BigNumberish,
+    isVerified: boolean
   ];
   export type OutputTuple = [
     artist: string,
     artistAmount: bigint,
-    craftiaxFee: bigint
+    craftiaxFee: bigint,
+    isVerified: boolean
   ];
   export interface OutputObject {
     artist: string;
     artistAmount: bigint;
     craftiaxFee: bigint;
+    isVerified: boolean;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace VerifierUpdatedEvent {
+  export type InputTuple = [oldVerifier: AddressLike, newVerifier: AddressLike];
+  export type OutputTuple = [oldVerifier: string, newVerifier: string];
+  export interface OutputObject {
+    oldVerifier: string;
+    newVerifier: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -215,19 +405,65 @@ export interface ArtistPayment extends BaseContract {
 
   MAX_FEE_PERCENTAGE: TypedContractMethod<[], [bigint], "view">;
 
+  MAX_PAYMENT: TypedContractMethod<[], [bigint], "view">;
+
+  MIN_PAYMENT: TypedContractMethod<[], [bigint], "view">;
+
   craftiaxAddress: TypedContractMethod<[], [string], "view">;
 
   craftiaxFeePercentage: TypedContractMethod<[], [bigint], "view">;
 
+  eip712Domain: TypedContractMethod<
+    [],
+    [
+      [string, string, string, bigint, string, string, bigint[]] & {
+        fields: string;
+        name: string;
+        version: string;
+        chainId: bigint;
+        verifyingContract: string;
+        salt: string;
+        extensions: bigint[];
+      }
+    ],
+    "view"
+  >;
+
+  generalMaxPayment: TypedContractMethod<[], [bigint], "view">;
+
+  generalMinPayment: TypedContractMethod<[], [bigint], "view">;
+
+  invalidateNonce: TypedContractMethod<
+    [user: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  isVerifiedArtist: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+
+  nonces: TypedContractMethod<[owner: AddressLike], [bigint], "view">;
+
   owner: TypedContractMethod<[], [string], "view">;
 
   payArtist: TypedContractMethod<
-    [artistAddress: AddressLike],
+    [artistAddress: AddressLike, deadline: BigNumberish, signature: BytesLike],
     [void],
     "payable"
   >;
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
+
+  setVerificationStatus: TypedContractMethod<
+    [artistAddress: AddressLike, status: boolean],
+    [void],
+    "nonpayable"
+  >;
+
+  setVerificationStatusBatch: TypedContractMethod<
+    [artists: AddressLike[], status: boolean],
+    [void],
+    "nonpayable"
+  >;
 
   transferOwnership: TypedContractMethod<
     [newOwner: AddressLike],
@@ -247,6 +483,24 @@ export interface ArtistPayment extends BaseContract {
     "nonpayable"
   >;
 
+  updatePaymentLimits: TypedContractMethod<
+    [
+      newGeneralMin: BigNumberish,
+      newGeneralMax: BigNumberish,
+      newVerifiedMax: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+
+  updateVerifier: TypedContractMethod<
+    [newVerifier: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  verifiedMaxPayment: TypedContractMethod<[], [bigint], "view">;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
@@ -255,20 +509,76 @@ export interface ArtistPayment extends BaseContract {
     nameOrSignature: "MAX_FEE_PERCENTAGE"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
+    nameOrSignature: "MAX_PAYMENT"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "MIN_PAYMENT"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
     nameOrSignature: "craftiaxAddress"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "craftiaxFeePercentage"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
+    nameOrSignature: "eip712Domain"
+  ): TypedContractMethod<
+    [],
+    [
+      [string, string, string, bigint, string, string, bigint[]] & {
+        fields: string;
+        name: string;
+        version: string;
+        chainId: bigint;
+        verifyingContract: string;
+        salt: string;
+        extensions: bigint[];
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "generalMaxPayment"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "generalMinPayment"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "invalidateNonce"
+  ): TypedContractMethod<[user: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "isVerifiedArtist"
+  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "nonces"
+  ): TypedContractMethod<[owner: AddressLike], [bigint], "view">;
+  getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "payArtist"
-  ): TypedContractMethod<[artistAddress: AddressLike], [void], "payable">;
+  ): TypedContractMethod<
+    [artistAddress: AddressLike, deadline: BigNumberish, signature: BytesLike],
+    [void],
+    "payable"
+  >;
   getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "setVerificationStatus"
+  ): TypedContractMethod<
+    [artistAddress: AddressLike, status: boolean],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "setVerificationStatusBatch"
+  ): TypedContractMethod<
+    [artists: AddressLike[], status: boolean],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
@@ -278,13 +588,44 @@ export interface ArtistPayment extends BaseContract {
   getFunction(
     nameOrSignature: "updateFeePercentage"
   ): TypedContractMethod<[newFee: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "updatePaymentLimits"
+  ): TypedContractMethod<
+    [
+      newGeneralMin: BigNumberish,
+      newGeneralMax: BigNumberish,
+      newVerifiedMax: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "updateVerifier"
+  ): TypedContractMethod<[newVerifier: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "verifiedMaxPayment"
+  ): TypedContractMethod<[], [bigint], "view">;
 
+  getEvent(
+    key: "ArtistVerificationStatusUpdated"
+  ): TypedContractEvent<
+    ArtistVerificationStatusUpdatedEvent.InputTuple,
+    ArtistVerificationStatusUpdatedEvent.OutputTuple,
+    ArtistVerificationStatusUpdatedEvent.OutputObject
+  >;
   getEvent(
     key: "CraftiaxAddressUpdated"
   ): TypedContractEvent<
     CraftiaxAddressUpdatedEvent.InputTuple,
     CraftiaxAddressUpdatedEvent.OutputTuple,
     CraftiaxAddressUpdatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "EIP712DomainChanged"
+  ): TypedContractEvent<
+    EIP712DomainChangedEvent.InputTuple,
+    EIP712DomainChangedEvent.OutputTuple,
+    EIP712DomainChangedEvent.OutputObject
   >;
   getEvent(
     key: "FeeUpdated"
@@ -294,11 +635,25 @@ export interface ArtistPayment extends BaseContract {
     FeeUpdatedEvent.OutputObject
   >;
   getEvent(
+    key: "NonceInvalidated"
+  ): TypedContractEvent<
+    NonceInvalidatedEvent.InputTuple,
+    NonceInvalidatedEvent.OutputTuple,
+    NonceInvalidatedEvent.OutputObject
+  >;
+  getEvent(
     key: "OwnershipTransferred"
   ): TypedContractEvent<
     OwnershipTransferredEvent.InputTuple,
     OwnershipTransferredEvent.OutputTuple,
     OwnershipTransferredEvent.OutputObject
+  >;
+  getEvent(
+    key: "PaymentLimitsUpdated"
+  ): TypedContractEvent<
+    PaymentLimitsUpdatedEvent.InputTuple,
+    PaymentLimitsUpdatedEvent.OutputTuple,
+    PaymentLimitsUpdatedEvent.OutputObject
   >;
   getEvent(
     key: "PaymentProcessed"
@@ -307,8 +662,26 @@ export interface ArtistPayment extends BaseContract {
     PaymentProcessedEvent.OutputTuple,
     PaymentProcessedEvent.OutputObject
   >;
+  getEvent(
+    key: "VerifierUpdated"
+  ): TypedContractEvent<
+    VerifierUpdatedEvent.InputTuple,
+    VerifierUpdatedEvent.OutputTuple,
+    VerifierUpdatedEvent.OutputObject
+  >;
 
   filters: {
+    "ArtistVerificationStatusUpdated(address,bool)": TypedContractEvent<
+      ArtistVerificationStatusUpdatedEvent.InputTuple,
+      ArtistVerificationStatusUpdatedEvent.OutputTuple,
+      ArtistVerificationStatusUpdatedEvent.OutputObject
+    >;
+    ArtistVerificationStatusUpdated: TypedContractEvent<
+      ArtistVerificationStatusUpdatedEvent.InputTuple,
+      ArtistVerificationStatusUpdatedEvent.OutputTuple,
+      ArtistVerificationStatusUpdatedEvent.OutputObject
+    >;
+
     "CraftiaxAddressUpdated(address)": TypedContractEvent<
       CraftiaxAddressUpdatedEvent.InputTuple,
       CraftiaxAddressUpdatedEvent.OutputTuple,
@@ -318,6 +691,17 @@ export interface ArtistPayment extends BaseContract {
       CraftiaxAddressUpdatedEvent.InputTuple,
       CraftiaxAddressUpdatedEvent.OutputTuple,
       CraftiaxAddressUpdatedEvent.OutputObject
+    >;
+
+    "EIP712DomainChanged()": TypedContractEvent<
+      EIP712DomainChangedEvent.InputTuple,
+      EIP712DomainChangedEvent.OutputTuple,
+      EIP712DomainChangedEvent.OutputObject
+    >;
+    EIP712DomainChanged: TypedContractEvent<
+      EIP712DomainChangedEvent.InputTuple,
+      EIP712DomainChangedEvent.OutputTuple,
+      EIP712DomainChangedEvent.OutputObject
     >;
 
     "FeeUpdated(uint256)": TypedContractEvent<
@@ -331,6 +715,17 @@ export interface ArtistPayment extends BaseContract {
       FeeUpdatedEvent.OutputObject
     >;
 
+    "NonceInvalidated(address,uint256)": TypedContractEvent<
+      NonceInvalidatedEvent.InputTuple,
+      NonceInvalidatedEvent.OutputTuple,
+      NonceInvalidatedEvent.OutputObject
+    >;
+    NonceInvalidated: TypedContractEvent<
+      NonceInvalidatedEvent.InputTuple,
+      NonceInvalidatedEvent.OutputTuple,
+      NonceInvalidatedEvent.OutputObject
+    >;
+
     "OwnershipTransferred(address,address)": TypedContractEvent<
       OwnershipTransferredEvent.InputTuple,
       OwnershipTransferredEvent.OutputTuple,
@@ -342,7 +737,18 @@ export interface ArtistPayment extends BaseContract {
       OwnershipTransferredEvent.OutputObject
     >;
 
-    "PaymentProcessed(address,uint256,uint256)": TypedContractEvent<
+    "PaymentLimitsUpdated(uint256,uint256,uint256)": TypedContractEvent<
+      PaymentLimitsUpdatedEvent.InputTuple,
+      PaymentLimitsUpdatedEvent.OutputTuple,
+      PaymentLimitsUpdatedEvent.OutputObject
+    >;
+    PaymentLimitsUpdated: TypedContractEvent<
+      PaymentLimitsUpdatedEvent.InputTuple,
+      PaymentLimitsUpdatedEvent.OutputTuple,
+      PaymentLimitsUpdatedEvent.OutputObject
+    >;
+
+    "PaymentProcessed(address,uint256,uint256,bool)": TypedContractEvent<
       PaymentProcessedEvent.InputTuple,
       PaymentProcessedEvent.OutputTuple,
       PaymentProcessedEvent.OutputObject
@@ -351,6 +757,17 @@ export interface ArtistPayment extends BaseContract {
       PaymentProcessedEvent.InputTuple,
       PaymentProcessedEvent.OutputTuple,
       PaymentProcessedEvent.OutputObject
+    >;
+
+    "VerifierUpdated(address,address)": TypedContractEvent<
+      VerifierUpdatedEvent.InputTuple,
+      VerifierUpdatedEvent.OutputTuple,
+      VerifierUpdatedEvent.OutputObject
+    >;
+    VerifierUpdated: TypedContractEvent<
+      VerifierUpdatedEvent.InputTuple,
+      VerifierUpdatedEvent.OutputTuple,
+      VerifierUpdatedEvent.OutputObject
     >;
   };
 }

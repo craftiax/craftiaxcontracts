@@ -26,18 +26,14 @@ import type {
 export interface EventTicketContractInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "MAX_MINTS_PER_WINDOW"
+      | "MIN_TIME_BETWEEN_MINTS"
+      | "RATE_LIMIT_WINDOW"
       | "balanceOf"
       | "balanceOfBatch"
-      | "createEvent"
-      | "eventExists"
-      | "getEventDetails"
-      | "getEventTicketsSoldStatus"
-      | "getEventTierDetails"
-      | "getTicketBalance"
-      | "getTicketBalances"
       | "isApprovedForAll"
-      | "mintTicket"
       | "owner"
+      | "paused"
       | "renounceOwnership"
       | "safeBatchTransferFrom"
       | "safeTransferFrom"
@@ -45,19 +41,36 @@ export interface EventTicketContractInterface extends Interface {
       | "supportsInterface"
       | "transferOwnership"
       | "uri"
+      | "usdToken"
+      | "withdrawOrganizerFees"
+      | "withdrawPlatformFees"
   ): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic:
       | "ApprovalForAll"
-      | "EventCreated"
+      | "FeesWithdrawn"
+      | "OrganizerBalanceUpdated"
       | "OwnershipTransferred"
-      | "TicketMinted"
+      | "Paused"
       | "TransferBatch"
       | "TransferSingle"
       | "URI"
+      | "Unpaused"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "MAX_MINTS_PER_WINDOW",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "MIN_TIME_BETWEEN_MINTS",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "RATE_LIMIT_WINDOW",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "balanceOf",
     values: [AddressLike, BigNumberish]
@@ -67,47 +80,11 @@ export interface EventTicketContractInterface extends Interface {
     values: [AddressLike[], BigNumberish[]]
   ): string;
   encodeFunctionData(
-    functionFragment: "createEvent",
-    values: [
-      string,
-      string[],
-      BigNumberish[],
-      BigNumberish[],
-      boolean,
-      BigNumberish,
-      AddressLike
-    ]
-  ): string;
-  encodeFunctionData(functionFragment: "eventExists", values: [string]): string;
-  encodeFunctionData(
-    functionFragment: "getEventDetails",
-    values: [string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getEventTicketsSoldStatus",
-    values: [string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getEventTierDetails",
-    values: [string, string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getTicketBalance",
-    values: [AddressLike, string, string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getTicketBalances",
-    values: [AddressLike, string]
-  ): string;
-  encodeFunctionData(
     functionFragment: "isApprovedForAll",
     values: [AddressLike, AddressLike]
   ): string;
-  encodeFunctionData(
-    functionFragment: "mintTicket",
-    values: [string, string, AddressLike, boolean]
-  ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
+  encodeFunctionData(functionFragment: "paused", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
@@ -139,46 +116,39 @@ export interface EventTicketContractInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "uri", values: [BigNumberish]): string;
+  encodeFunctionData(functionFragment: "usdToken", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "withdrawOrganizerFees",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawPlatformFees",
+    values: [AddressLike]
+  ): string;
 
+  decodeFunctionResult(
+    functionFragment: "MAX_MINTS_PER_WINDOW",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "MIN_TIME_BETWEEN_MINTS",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "RATE_LIMIT_WINDOW",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "balanceOfBatch",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "createEvent",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "eventExists",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getEventDetails",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getEventTicketsSoldStatus",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getEventTierDetails",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getTicketBalance",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getTicketBalances",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "isApprovedForAll",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "mintTicket", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
     data: BytesLike
@@ -204,6 +174,15 @@ export interface EventTicketContractInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "uri", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "usdToken", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawOrganizerFees",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawPlatformFees",
+    data: BytesLike
+  ): Result;
 }
 
 export namespace ApprovalForAllEvent {
@@ -228,12 +207,43 @@ export namespace ApprovalForAllEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace EventCreatedEvent {
-  export type InputTuple = [eventId: string, creator: AddressLike];
-  export type OutputTuple = [eventId: string, creator: string];
+export namespace FeesWithdrawnEvent {
+  export type InputTuple = [
+    recipient: AddressLike,
+    ethAmount: BigNumberish,
+    usdAmount: BigNumberish
+  ];
+  export type OutputTuple = [
+    recipient: string,
+    ethAmount: bigint,
+    usdAmount: bigint
+  ];
   export interface OutputObject {
-    eventId: string;
-    creator: string;
+    recipient: string;
+    ethAmount: bigint;
+    usdAmount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace OrganizerBalanceUpdatedEvent {
+  export type InputTuple = [
+    organizer: AddressLike,
+    ethBalance: BigNumberish,
+    usdBalance: BigNumberish
+  ];
+  export type OutputTuple = [
+    organizer: string,
+    ethBalance: bigint,
+    usdBalance: bigint
+  ];
+  export interface OutputObject {
+    organizer: string;
+    ethBalance: bigint;
+    usdBalance: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -254,21 +264,11 @@ export namespace OwnershipTransferredEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace TicketMintedEvent {
-  export type InputTuple = [
-    eventId: string,
-    tierId: string,
-    recipient: AddressLike
-  ];
-  export type OutputTuple = [
-    eventId: string,
-    tierId: string,
-    recipient: string
-  ];
+export namespace PausedEvent {
+  export type InputTuple = [account: AddressLike];
+  export type OutputTuple = [account: string];
   export interface OutputObject {
-    eventId: string;
-    tierId: string;
-    recipient: string;
+    account: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -345,6 +345,18 @@ export namespace URIEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace UnpausedEvent {
+  export type InputTuple = [account: AddressLike];
+  export type OutputTuple = [account: string];
+  export interface OutputObject {
+    account: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export interface EventTicketContract extends BaseContract {
   connect(runner?: ContractRunner | null): EventTicketContract;
   waitForDeployment(): Promise<this>;
@@ -388,6 +400,12 @@ export interface EventTicketContract extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  MAX_MINTS_PER_WINDOW: TypedContractMethod<[], [bigint], "view">;
+
+  MIN_TIME_BETWEEN_MINTS: TypedContractMethod<[], [bigint], "view">;
+
+  RATE_LIMIT_WINDOW: TypedContractMethod<[], [bigint], "view">;
+
   balanceOf: TypedContractMethod<
     [account: AddressLike, id: BigNumberish],
     [bigint],
@@ -400,92 +418,15 @@ export interface EventTicketContract extends BaseContract {
     "view"
   >;
 
-  createEvent: TypedContractMethod<
-    [
-      eventId: string,
-      tierIds: string[],
-      prices: BigNumberish[],
-      maxQuantities: BigNumberish[],
-      commissionActive: boolean,
-      commissionPercentage: BigNumberish,
-      commissionAddress: AddressLike
-    ],
-    [void],
-    "nonpayable"
-  >;
-
-  eventExists: TypedContractMethod<[eventId: string], [boolean], "view">;
-
-  getEventDetails: TypedContractMethod<
-    [eventId: string],
-    [
-      [string, boolean, bigint, boolean, bigint, string] & {
-        creator: string;
-        isActive: boolean;
-        totalTiers: bigint;
-        commissionActive: boolean;
-        commissionPercentage: bigint;
-        commissionAddress: string;
-      }
-    ],
-    "view"
-  >;
-
-  getEventTicketsSoldStatus: TypedContractMethod<
-    [eventId: string],
-    [
-      [bigint[], bigint[], string[]] & {
-        soldCounts: bigint[];
-        maxQuantities: bigint[];
-        tierIds: string[];
-      }
-    ],
-    "view"
-  >;
-
-  getEventTierDetails: TypedContractMethod<
-    [eventId: string, tierId: string],
-    [
-      [bigint, bigint, bigint, boolean] & {
-        price: bigint;
-        maxQuantity: bigint;
-        soldCount: bigint;
-        isActive: boolean;
-      }
-    ],
-    "view"
-  >;
-
-  getTicketBalance: TypedContractMethod<
-    [owner: AddressLike, eventId: string, tierId: string],
-    [bigint],
-    "view"
-  >;
-
-  getTicketBalances: TypedContractMethod<
-    [owner: AddressLike, eventId: string],
-    [bigint[]],
-    "view"
-  >;
-
   isApprovedForAll: TypedContractMethod<
     [account: AddressLike, operator: AddressLike],
     [boolean],
     "view"
   >;
 
-  mintTicket: TypedContractMethod<
-    [
-      eventId: string,
-      tierId: string,
-      recipient: AddressLike,
-      applyCommission: boolean
-    ],
-    [void],
-    "payable"
-  >;
-
   owner: TypedContractMethod<[], [string], "view">;
+
+  paused: TypedContractMethod<[], [boolean], "view">;
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
@@ -533,10 +474,29 @@ export interface EventTicketContract extends BaseContract {
 
   uri: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
 
+  usdToken: TypedContractMethod<[], [string], "view">;
+
+  withdrawOrganizerFees: TypedContractMethod<[], [void], "nonpayable">;
+
+  withdrawPlatformFees: TypedContractMethod<
+    [recipient: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "MAX_MINTS_PER_WINDOW"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "MIN_TIME_BETWEEN_MINTS"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "RATE_LIMIT_WINDOW"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "balanceOf"
   ): TypedContractMethod<
@@ -552,81 +512,6 @@ export interface EventTicketContract extends BaseContract {
     "view"
   >;
   getFunction(
-    nameOrSignature: "createEvent"
-  ): TypedContractMethod<
-    [
-      eventId: string,
-      tierIds: string[],
-      prices: BigNumberish[],
-      maxQuantities: BigNumberish[],
-      commissionActive: boolean,
-      commissionPercentage: BigNumberish,
-      commissionAddress: AddressLike
-    ],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "eventExists"
-  ): TypedContractMethod<[eventId: string], [boolean], "view">;
-  getFunction(
-    nameOrSignature: "getEventDetails"
-  ): TypedContractMethod<
-    [eventId: string],
-    [
-      [string, boolean, bigint, boolean, bigint, string] & {
-        creator: string;
-        isActive: boolean;
-        totalTiers: bigint;
-        commissionActive: boolean;
-        commissionPercentage: bigint;
-        commissionAddress: string;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "getEventTicketsSoldStatus"
-  ): TypedContractMethod<
-    [eventId: string],
-    [
-      [bigint[], bigint[], string[]] & {
-        soldCounts: bigint[];
-        maxQuantities: bigint[];
-        tierIds: string[];
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "getEventTierDetails"
-  ): TypedContractMethod<
-    [eventId: string, tierId: string],
-    [
-      [bigint, bigint, bigint, boolean] & {
-        price: bigint;
-        maxQuantity: bigint;
-        soldCount: bigint;
-        isActive: boolean;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "getTicketBalance"
-  ): TypedContractMethod<
-    [owner: AddressLike, eventId: string, tierId: string],
-    [bigint],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "getTicketBalances"
-  ): TypedContractMethod<
-    [owner: AddressLike, eventId: string],
-    [bigint[]],
-    "view"
-  >;
-  getFunction(
     nameOrSignature: "isApprovedForAll"
   ): TypedContractMethod<
     [account: AddressLike, operator: AddressLike],
@@ -634,20 +519,11 @@ export interface EventTicketContract extends BaseContract {
     "view"
   >;
   getFunction(
-    nameOrSignature: "mintTicket"
-  ): TypedContractMethod<
-    [
-      eventId: string,
-      tierId: string,
-      recipient: AddressLike,
-      applyCommission: boolean
-    ],
-    [void],
-    "payable"
-  >;
-  getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "paused"
+  ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
@@ -693,6 +569,15 @@ export interface EventTicketContract extends BaseContract {
   getFunction(
     nameOrSignature: "uri"
   ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
+  getFunction(
+    nameOrSignature: "usdToken"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "withdrawOrganizerFees"
+  ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "withdrawPlatformFees"
+  ): TypedContractMethod<[recipient: AddressLike], [void], "nonpayable">;
 
   getEvent(
     key: "ApprovalForAll"
@@ -702,11 +587,18 @@ export interface EventTicketContract extends BaseContract {
     ApprovalForAllEvent.OutputObject
   >;
   getEvent(
-    key: "EventCreated"
+    key: "FeesWithdrawn"
   ): TypedContractEvent<
-    EventCreatedEvent.InputTuple,
-    EventCreatedEvent.OutputTuple,
-    EventCreatedEvent.OutputObject
+    FeesWithdrawnEvent.InputTuple,
+    FeesWithdrawnEvent.OutputTuple,
+    FeesWithdrawnEvent.OutputObject
+  >;
+  getEvent(
+    key: "OrganizerBalanceUpdated"
+  ): TypedContractEvent<
+    OrganizerBalanceUpdatedEvent.InputTuple,
+    OrganizerBalanceUpdatedEvent.OutputTuple,
+    OrganizerBalanceUpdatedEvent.OutputObject
   >;
   getEvent(
     key: "OwnershipTransferred"
@@ -716,11 +608,11 @@ export interface EventTicketContract extends BaseContract {
     OwnershipTransferredEvent.OutputObject
   >;
   getEvent(
-    key: "TicketMinted"
+    key: "Paused"
   ): TypedContractEvent<
-    TicketMintedEvent.InputTuple,
-    TicketMintedEvent.OutputTuple,
-    TicketMintedEvent.OutputObject
+    PausedEvent.InputTuple,
+    PausedEvent.OutputTuple,
+    PausedEvent.OutputObject
   >;
   getEvent(
     key: "TransferBatch"
@@ -743,6 +635,13 @@ export interface EventTicketContract extends BaseContract {
     URIEvent.OutputTuple,
     URIEvent.OutputObject
   >;
+  getEvent(
+    key: "Unpaused"
+  ): TypedContractEvent<
+    UnpausedEvent.InputTuple,
+    UnpausedEvent.OutputTuple,
+    UnpausedEvent.OutputObject
+  >;
 
   filters: {
     "ApprovalForAll(address,address,bool)": TypedContractEvent<
@@ -756,15 +655,26 @@ export interface EventTicketContract extends BaseContract {
       ApprovalForAllEvent.OutputObject
     >;
 
-    "EventCreated(string,address)": TypedContractEvent<
-      EventCreatedEvent.InputTuple,
-      EventCreatedEvent.OutputTuple,
-      EventCreatedEvent.OutputObject
+    "FeesWithdrawn(address,uint256,uint256)": TypedContractEvent<
+      FeesWithdrawnEvent.InputTuple,
+      FeesWithdrawnEvent.OutputTuple,
+      FeesWithdrawnEvent.OutputObject
     >;
-    EventCreated: TypedContractEvent<
-      EventCreatedEvent.InputTuple,
-      EventCreatedEvent.OutputTuple,
-      EventCreatedEvent.OutputObject
+    FeesWithdrawn: TypedContractEvent<
+      FeesWithdrawnEvent.InputTuple,
+      FeesWithdrawnEvent.OutputTuple,
+      FeesWithdrawnEvent.OutputObject
+    >;
+
+    "OrganizerBalanceUpdated(address,uint256,uint256)": TypedContractEvent<
+      OrganizerBalanceUpdatedEvent.InputTuple,
+      OrganizerBalanceUpdatedEvent.OutputTuple,
+      OrganizerBalanceUpdatedEvent.OutputObject
+    >;
+    OrganizerBalanceUpdated: TypedContractEvent<
+      OrganizerBalanceUpdatedEvent.InputTuple,
+      OrganizerBalanceUpdatedEvent.OutputTuple,
+      OrganizerBalanceUpdatedEvent.OutputObject
     >;
 
     "OwnershipTransferred(address,address)": TypedContractEvent<
@@ -778,15 +688,15 @@ export interface EventTicketContract extends BaseContract {
       OwnershipTransferredEvent.OutputObject
     >;
 
-    "TicketMinted(string,string,address)": TypedContractEvent<
-      TicketMintedEvent.InputTuple,
-      TicketMintedEvent.OutputTuple,
-      TicketMintedEvent.OutputObject
+    "Paused(address)": TypedContractEvent<
+      PausedEvent.InputTuple,
+      PausedEvent.OutputTuple,
+      PausedEvent.OutputObject
     >;
-    TicketMinted: TypedContractEvent<
-      TicketMintedEvent.InputTuple,
-      TicketMintedEvent.OutputTuple,
-      TicketMintedEvent.OutputObject
+    Paused: TypedContractEvent<
+      PausedEvent.InputTuple,
+      PausedEvent.OutputTuple,
+      PausedEvent.OutputObject
     >;
 
     "TransferBatch(address,address,address,uint256[],uint256[])": TypedContractEvent<
@@ -820,6 +730,17 @@ export interface EventTicketContract extends BaseContract {
       URIEvent.InputTuple,
       URIEvent.OutputTuple,
       URIEvent.OutputObject
+    >;
+
+    "Unpaused(address)": TypedContractEvent<
+      UnpausedEvent.InputTuple,
+      UnpausedEvent.OutputTuple,
+      UnpausedEvent.OutputObject
+    >;
+    Unpaused: TypedContractEvent<
+      UnpausedEvent.InputTuple,
+      UnpausedEvent.OutputTuple,
+      UnpausedEvent.OutputObject
     >;
   };
 }
