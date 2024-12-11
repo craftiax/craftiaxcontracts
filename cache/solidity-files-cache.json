@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\craftiax_mvp\\Smart contracts\\contracts\\ArtistPayment.sol": {
-      "lastModificationDate": 1733894202410,
-      "contentHash": "a6bf5d0ea9c5799369f63dffa4c12817",
+      "lastModificationDate": 1733895727888,
+      "contentHash": "db15b98e2324c7bc4af230faf8556f9c",
       "sourceName": "contracts/ArtistPayment.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -33,10 +33,12 @@
         "@openzeppelin/contracts/access/Ownable.sol",
         "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
         "@openzeppelin/contracts/utils/cryptography/ECDSA.sol",
-        "@openzeppelin/contracts/utils/cryptography/EIP712.sol"
+        "@openzeppelin/contracts/utils/cryptography/EIP712.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol"
       ],
       "versionPragmas": [
-        "^0.8.0"
+        "^0.8.20"
       ],
       "artifacts": [
         "ArtistPayment"

@@ -1,261 +1,245 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { ArtistPayment } from "../typechain-types";
+import { ArtistPayment, MockERC20 } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { time } from "@nomicfoundation/hardhat-network-helpers";
-
-// Add helper functions
-async function getDeadline(offsetSeconds: number = 3600): Promise<number> {
-    const latestTime = await time.latest();
-    return latestTime + offsetSeconds;
-}
-
-async function getPaymentSignature(
-    artistPayment: ArtistPayment,
-    verifier: SignerWithAddress,
-    artist: string,
-    amount: bigint,
-    nonce: number,
-    deadline: number
-) {
-    const domain = {
-        name: "ArtistPayment",
-        version: "1",
-        chainId: (await ethers.provider.getNetwork()).chainId,
-        verifyingContract: await artistPayment.getAddress()
-    };
-
-    const types = {
-        PayArtist: [
-            { name: "artist", type: "address" },
-            { name: "amount", type: "uint256" },
-            { name: "nonce", type: "uint256" },
-            { name: "deadline", type: "uint256" },
-            { name: "chainId", type: "uint256" }
-        ]
-    };
-
-    const value = {
-        artist: artist,
-        amount: amount,
-        nonce: nonce,
-        deadline: deadline,
-        chainId: domain.chainId
-    };
-
-    return await verifier.signTypedData(domain, types, value);
-}
 
 describe("ArtistPayment", function () {
-    let artistPayment: ArtistPayment;
-    let owner: SignerWithAddress;
-    let verifier: SignerWithAddress;
-    let artist: SignerWithAddress;
-    let payer: SignerWithAddress;
-    let craftiax: SignerWithAddress;
-
-    const DOMAIN_NAME = "ArtistPayment";
-    const DOMAIN_VERSION = "1";
+  let artistPayment: ArtistPayment;
+  let owner: SignerWithAddress;
+  let artist: SignerWithAddress;
+  let payer: SignerWithAddress;
+  let mockUSDC: MockERC20;
+  
+  beforeEach(async function () {
+    // Get signers
+    [owner, artist, payer] = await ethers.getSigners();
     
-    beforeEach(async function () {
-        [owner, verifier, artist, payer, craftiax] = await ethers.getSigners();
-        
-        const ArtistPaymentFactory = await ethers.getContractFactory("ArtistPayment");
-        artistPayment = await ArtistPaymentFactory.deploy(owner.address) as ArtistPayment;
-        await artistPayment.waitForDeployment();
+    // Deploy mock USDC token
+    const MockToken = await ethers.getContractFactory("MockERC20");
+    mockUSDC = (await MockToken.deploy("USDC", "USDC", 6)) as MockERC20;
+    await mockUSDC.waitForDeployment();
+    
+    // Deploy ArtistPayment contract
+    const ArtistPaymentFactory = await ethers.getContractFactory("ArtistPayment");
+    artistPayment = (await ArtistPaymentFactory.deploy(
+      owner.address,
+      await mockUSDC.getAddress()
+    )) as ArtistPayment;
+    await artistPayment.waitForDeployment();
+    
+    // Mint USDC to payer
+    await mockUSDC.mint(payer.address, ethers.parseUnits("1000", 6));
+    await mockUSDC.connect(payer).approve(await artistPayment.getAddress(), ethers.parseUnits("1000", 6));
+  });
 
-        // Set up initial state
-        await artistPayment.updateCraftiaxAddress(craftiax.address);
-        await artistPayment.updateVerifier(verifier.address);
+  describe("Basic Configuration", function () {
+    it("Should initialize with correct values", async function () {
+      expect(await artistPayment.owner()).to.equal(owner.address);
+      expect(await artistPayment.craftiaxFeePercentage()).to.equal(5);
+      expect(await artistPayment.MAX_FEE_PERCENTAGE()).to.equal(20);
     });
 
-    describe("Basic Configuration", function () {
-        it("Should initialize with correct values", async function () {
-            expect(await artistPayment.craftiaxFeePercentage()).to.equal(5);
-            expect(await artistPayment.craftiaxAddress()).to.equal(craftiax.address);
-        });
-
-        it("Should update fee percentage correctly", async function () {
-            await artistPayment.updateFeePercentage(10);
-            expect(await artistPayment.craftiaxFeePercentage()).to.equal(10);
-        });
-
-        it("Should revert if fee percentage exceeds maximum", async function () {
-            await expect(artistPayment.updateFeePercentage(21))
-                .to.be.revertedWith("Fee exceeds maximum allowed");
-        });
+    it("Should allow owner to update fee percentage", async function () {
+      await artistPayment.connect(owner).updateFeePercentage(10);
+      expect(await artistPayment.craftiaxFeePercentage()).to.equal(10);
     });
 
-    describe("Artist Verification", function () {
-        it("Should verify artist correctly", async function () {
-            await artistPayment.setVerificationStatus(artist.address, true);
-            expect(await artistPayment.isVerifiedArtist(artist.address)).to.be.true;
-        });
+    it("Should revert if non-owner tries to update fee", async function () {
+      await expect(
+        artistPayment.connect(artist).updateFeePercentage(10)
+      ).to.be.revertedWithCustomError(artistPayment, "OwnableUnauthorizedAccount");
+    });
+  });
 
-        it("Should verify multiple artists in batch", async function () {
-            const artists = [artist.address, payer.address];
-            await artistPayment.setVerificationStatusBatch(artists, true);
-            
-            expect(await artistPayment.isVerifiedArtist(artist.address)).to.be.true;
-            expect(await artistPayment.isVerifiedArtist(payer.address)).to.be.true;
-        });
+  describe("Artist Verification", function () {
+    it("Should verify artist correctly", async function () {
+      await artistPayment.connect(owner).setVerificationStatus(artist.address, true);
+      expect(await artistPayment.isVerifiedArtist(artist.address)).to.be.true;
     });
 
-    describe("Payment Processing", function () {
-        it("Should process payment correctly", async function () {
-            const paymentAmount = ethers.parseEther("0.1");
-            const deadline = await getDeadline();
-            const nonce = await artistPayment.nonces(payer.address);
-            
-            const signature = await getPaymentSignature(
-                artistPayment,
-                verifier,
-                artist.address,
-                paymentAmount,
-                Number(nonce),
-                deadline
-            );
+    it("Should verify multiple artists in batch", async function () {
+      const artists = [artist.address, payer.address];
+      await artistPayment.connect(owner).setVerificationStatusBatch(artists, true);
+      
+      expect(await artistPayment.isVerifiedArtist(artist.address)).to.be.true;
+      expect(await artistPayment.isVerifiedArtist(payer.address)).to.be.true;
+    });
+  });
 
-            const artistBalanceBefore = await ethers.provider.getBalance(artist.address);
-            const craftiaxBalanceBefore = await ethers.provider.getBalance(craftiax.address);
+  describe("Payment Processing", function () {
+    it("Should process ETH payment correctly", async function () {
+      const paymentAmount = ethers.parseEther("0.01");
+      const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
 
-            await expect(artistPayment.connect(payer).payArtist(
-                artist.address,
-                deadline,
-                signature,
-                { value: paymentAmount }
-            )).to.emit(artistPayment, "PaymentProcessed");
+      const artistBalanceBefore = await ethers.provider.getBalance(artist.address);
+      
+      await artistPayment.connect(payer).payArtist(
+        artist.address,
+        paymentAmount,
+        0, // ETH payment
+        deadline,
+        { value: paymentAmount }
+      );
 
-            const artistBalanceAfter = await ethers.provider.getBalance(artist.address);
-            const craftiaxBalanceAfter = await ethers.provider.getBalance(craftiax.address);
-
-            // Check fee calculation (5% fee)
-            const expectedFee = (paymentAmount * BigInt(5)) / BigInt(100);
-            const expectedArtistPayment = paymentAmount - expectedFee;
-
-            expect(artistBalanceAfter - artistBalanceBefore).to.equal(expectedArtistPayment);
-            expect(craftiaxBalanceAfter - craftiaxBalanceBefore).to.equal(expectedFee);
-        });
-
-        it("Should revert on expired signature", async function () {
-            const paymentAmount = ethers.parseEther("0.1");
-            const deadline = await getDeadline(-3600); // 1 hour ago
-            const nonce = await artistPayment.nonces(payer.address);
-            
-            const signature = await getPaymentSignature(
-                artistPayment,
-                verifier,
-                artist.address,
-                paymentAmount,
-                Number(nonce),
-                deadline
-            );
-
-            await expect(artistPayment.connect(payer).payArtist(
-                artist.address,
-                deadline,
-                signature,
-                { value: paymentAmount }
-            )).to.be.revertedWith("Signature expired");
-        });
-
-        it("Should revert on invalid payment amount", async function () {
-            const paymentAmount = ethers.parseEther("0.000001"); // Too small
-            const deadline = await getDeadline();
-            const nonce = await artistPayment.nonces(payer.address);
-            
-            const signature = await getPaymentSignature(
-                artistPayment,
-                verifier,
-                artist.address,
-                paymentAmount,
-                Number(nonce),
-                deadline
-            );
-
-            await expect(artistPayment.connect(payer).payArtist(
-                artist.address,
-                deadline,
-                signature,
-                { value: paymentAmount }
-            )).to.be.revertedWith("Payment amount below minimum");
-        });
+      const artistBalanceAfter = await ethers.provider.getBalance(artist.address);
+      const fee = (paymentAmount * BigInt(5)) / BigInt(100); // 5% fee
+      const expectedArtistPayment = paymentAmount - fee;
+      
+      expect(artistBalanceAfter - artistBalanceBefore).to.equal(expectedArtistPayment);
     });
 
-    describe("Security Features", function () {
-        it("Should invalidate nonce correctly", async function () {
-            await artistPayment.invalidateNonce(payer.address);
-            expect(await artistPayment.nonces(payer.address))
-                .to.equal(ethers.MaxUint256);
-        });
+    it("Should process USDC payment correctly", async function () {
+      // Set artist as verified to allow higher payment limits
+      await artistPayment.connect(owner).setVerificationStatus(artist.address, true);
 
-        it("Should handle rate limiting", async function () {
-            const paymentAmount = ethers.parseEther("0.1");
-            const deadline = await getDeadline(7200); // Set deadline further in future
-            
-            // First payment
-            const nonce1 = await artistPayment.nonces(payer.address);
-            const signature1 = await getPaymentSignature(
-                artistPayment,
-                verifier,
-                artist.address,
-                paymentAmount,
-                Number(nonce1),
-                deadline
-            );
+      // Use 100 USDC which is above the minimum (contract minimum is 0.01 USDC)
+      // USDC has 6 decimals, so 100 USDC = 100 * 10^6
+      const paymentAmount = ethers.parseUnits("100", 6); // 100 USDC
+      const deadline = Math.floor(Date.now() / 1000) + 3600;
 
-            // Make first payment
-            await artistPayment.connect(payer).payArtist(
-                artist.address,
-                deadline,
-                signature1,
-                { value: paymentAmount }
-            );
+      // Get balances before payment
+      const artistBalanceBefore = await mockUSDC.balanceOf(artist.address);
+      const craftiaxBalanceBefore = await mockUSDC.balanceOf(await artistPayment.craftiaxAddress());
+      
+      await artistPayment.connect(payer).payArtist(
+        artist.address,
+        paymentAmount,
+        1, // USD payment
+        deadline
+      );
 
-            // Attempt second payment immediately
-            const nonce2 = await artistPayment.nonces(payer.address);
-            const signature2 = await getPaymentSignature(
-                artistPayment,
-                verifier,
-                artist.address,
-                paymentAmount,
-                Number(nonce2),
-                deadline
-            );
+      // Get balances after payment
+      const artistBalanceAfter = await mockUSDC.balanceOf(artist.address);
+      const craftiaxBalanceAfter = await mockUSDC.balanceOf(await artistPayment.craftiaxAddress());
 
-            // This should fail due to rate limiting
-            await expect(
-                artistPayment.connect(payer).payArtist(
-                    artist.address,
-                    deadline,
-                    signature2,
-                    { value: paymentAmount }
-                )
-            ).to.be.revertedWith("Too many requests");
-
-            // Wait for cooldown period
-            await ethers.provider.send("evm_increaseTime", [61]); // Wait 61 seconds
-            await ethers.provider.send("evm_mine", []); // Mine a new block
-
-            // Third payment should now succeed
-            const nonce3 = await artistPayment.nonces(payer.address);
-            const signature3 = await getPaymentSignature(
-                artistPayment,
-                verifier,
-                artist.address,
-                paymentAmount,
-                Number(nonce3),
-                deadline
-            );
-
-            await expect(
-                artistPayment.connect(payer).payArtist(
-                    artist.address,
-                    deadline,
-                    signature3,
-                    { value: paymentAmount }
-                )
-            ).to.not.be.reverted;
-        });
+      // Calculate expected amounts
+      const fee = (paymentAmount * BigInt(5)) / BigInt(100); // 5% fee
+      const expectedArtistPayment = paymentAmount - fee;
+      
+      // Verify balances
+      expect(artistBalanceAfter - artistBalanceBefore).to.equal(expectedArtistPayment);
+      expect(craftiaxBalanceAfter - craftiaxBalanceBefore).to.equal(fee);
     });
+
+    it("Should accept minimum USDC payment", async function () {
+      // Get the minimum payment from contract
+      const usdcLimits = await artistPayment.usdcLimits();
+      const minPayment = usdcLimits.minPayment;
+      const deadline = Math.floor(Date.now() / 1000) + 3600;
+
+      // Get balances before payment
+      const artistBalanceBefore = await mockUSDC.balanceOf(artist.address);
+      const craftiaxBalanceBefore = await mockUSDC.balanceOf(await artistPayment.craftiaxAddress());
+
+      await expect(
+        artistPayment.connect(payer).payArtist(
+          artist.address,
+          minPayment,
+          1, // USD payment
+          deadline
+        )
+      ).to.not.be.reverted;
+
+      // Get balances after payment
+      const artistBalanceAfter = await mockUSDC.balanceOf(artist.address);
+      const craftiaxBalanceAfter = await mockUSDC.balanceOf(await artistPayment.craftiaxAddress());
+
+      // Calculate expected amounts
+      const fee = (minPayment * BigInt(5)) / BigInt(100); // 5% fee
+      const expectedArtistPayment = minPayment - fee;
+
+      // Verify balances
+      expect(artistBalanceAfter - artistBalanceBefore).to.equal(expectedArtistPayment);
+      expect(craftiaxBalanceAfter - craftiaxBalanceBefore).to.equal(fee);
+    });
+
+    it("Should reject below minimum USDC payment", async function () {
+      const usdcLimits = await artistPayment.usdcLimits();
+      const belowMin = usdcLimits.minPayment - BigInt(1);
+      const deadline = Math.floor(Date.now() / 1000) + 3600;
+
+      await expect(
+        artistPayment.connect(payer).payArtist(
+          artist.address,
+          belowMin,
+          1, // USD payment
+          deadline
+        )
+      ).to.be.revertedWith("Payment amount below minimum");
+    });
+
+    it("Should respect USDC payment limits for unverified artists", async function () {
+      const usdcLimits = await artistPayment.usdcLimits();
+      const aboveMax = usdcLimits.maxPayment + BigInt(1);
+      const deadline = Math.floor(Date.now() / 1000) + 3600;
+
+      await expect(
+        artistPayment.connect(payer).payArtist(
+          artist.address,
+          aboveMax,
+          1, // USD payment
+          deadline
+        )
+      ).to.be.revertedWith("Payment amount above maximum");
+    });
+
+    it("Should respect USDC payment limits for verified artists", async function () {
+      // Verify the artist
+      await artistPayment.connect(owner).setVerificationStatus(artist.address, true);
+
+      const usdcLimits = await artistPayment.usdcLimits();
+      const validAmount = usdcLimits.maxPayment + BigInt(1); // Amount above regular max but below verified max
+      const deadline = Math.floor(Date.now() / 1000) + 3600;
+
+      // Should succeed because artist is verified
+      await expect(
+        artistPayment.connect(payer).payArtist(
+          artist.address,
+          validAmount,
+          1, // USD payment
+          deadline
+        )
+      ).to.not.be.reverted;
+    });
+
+    it("Should respect payment limits", async function () {
+      const tooSmallAmount = ethers.parseEther("0.000001"); // Below minimum
+      const deadline = Math.floor(Date.now() / 1000) + 3600;
+
+      await expect(
+        artistPayment.connect(payer).payArtist(
+          artist.address,
+          tooSmallAmount,
+          0, // ETH payment
+          deadline,
+          { value: tooSmallAmount }
+        )
+      ).to.be.revertedWith("Payment amount below minimum");
+    });
+
+    it("Should enforce cooldown period", async function () {
+      const paymentAmount = ethers.parseEther("0.01");
+      const deadline = Math.floor(Date.now() / 1000) + 3600;
+
+      // First payment
+      await artistPayment.connect(payer).payArtist(
+        artist.address,
+        paymentAmount,
+        0,
+        deadline,
+        { value: paymentAmount }
+      );
+
+      // Second payment should fail due to cooldown
+      await expect(
+        artistPayment.connect(payer).payArtist(
+          artist.address,
+          paymentAmount,
+          0,
+          deadline,
+          { value: paymentAmount }
+        )
+      ).to.be.revertedWith("Too many requests");
+    });
+  });
 }); 

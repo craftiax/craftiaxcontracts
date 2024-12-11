@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 contract ArtistPayment is ReentrancyGuard, Ownable, EIP712 {
     using ECDSA for bytes32;
@@ -49,7 +51,7 @@ contract ArtistPayment is ReentrancyGuard, Ownable, EIP712 {
 
     // Add new variables for signature verification
     bytes32 private constant PAYMENT_TYPEHASH = keccak256(
-        "PayArtist(address artist,uint256 amount,uint256 nonce,uint256 deadline,uint256 chainId)"
+        "PayArtist(address artist,uint256 amount,PaymentCurrency currency,uint256 nonce,uint256 deadline,uint256 chainId)"
     );
     mapping(address => uint256) private _nonces;
     address private _verifier;
@@ -58,19 +60,55 @@ contract ArtistPayment is ReentrancyGuard, Ownable, EIP712 {
     mapping(address => uint256) private lastPaymentTimestamp;
     uint256 private constant PAYMENT_COOLDOWN = 60; // 60 seconds = 1 minute
 
-    constructor(address initialOwner) 
+    // Add payment currency enum
+    enum PaymentCurrency { ETH, USD }
+    
+    // Add USDC token interface
+    IERC20 public immutable usdToken;
+    uint8 private immutable USDC_DECIMALS;
+    uint8 private constant PRICE_DECIMALS = 18;
+
+    // Update payment limits to include USDC
+    struct PaymentLimits {
+        uint256 minPayment;
+        uint256 maxPayment;
+        uint256 verifiedMaxPayment;
+    }
+    
+    PaymentLimits public ethLimits;
+    PaymentLimits public usdcLimits;
+
+    constructor(address initialOwner, address _usdToken) 
         Ownable(initialOwner) 
         EIP712("ArtistPayment", "1") 
     {
+        usdToken = IERC20(_usdToken);
+        USDC_DECIMALS = IERC20Metadata(_usdToken).decimals();
+        
         craftiaxAddress = 0x8ce0f94755Eb14f7AF130C1aa2cAd26dea2a2Acd;
         craftiaxFeePercentage = 5;
-        _verifier = initialOwner; // Initially set owner as verifier
+        _verifier = initialOwner;
+
+        // Initialize ETH limits
+        ethLimits = PaymentLimits({
+            minPayment: 5000000000000 wei, // 0.000005 ETH
+            maxPayment: 50000000000000000 wei, // 0.05 ETH
+            verifiedMaxPayment: 250000000000000000 wei // 0.25 ETH
+        });
+
+        // Initialize USDC limits (assuming 6 decimals)
+        usdcLimits = PaymentLimits({
+            minPayment: 10000, // $0.01
+            maxPayment: 100000000, // $100
+            verifiedMaxPayment: 500000000 // $500
+        });
     }
 
     function payArtist(
         address artistAddress,
-        uint256 deadline,
-        bytes memory signature
+        uint256 amount,
+        PaymentCurrency currency,
+        uint256 deadline
     ) external payable nonReentrant {
         // Add rate limiting check
         require(
@@ -80,45 +118,62 @@ contract ArtistPayment is ReentrancyGuard, Ownable, EIP712 {
         
         // Validate inputs
         require(block.timestamp <= deadline, "Signature expired");
-        require(msg.value >= generalMinPayment, "Payment amount below minimum");
         require(artistAddress != address(0), "Invalid artist address");
         require(artistAddress != craftiaxAddress, "Artist cannot be Craftiax address");
 
         // Update rate limiting timestamp
         lastPaymentTimestamp[msg.sender] = block.timestamp;
 
-        // Verify signature
+        // Verify signature with updated parameters
         bytes32 structHash = keccak256(abi.encode(
             PAYMENT_TYPEHASH,
             artistAddress,
-            msg.value,
+            amount,
+            currency,
             _nonces[msg.sender]++,
             deadline,
             block.chainid
         ));
 
-        bytes32 hash = _hashTypedDataV4(structHash);
-        address signer = ECDSA.recover(hash, signature);
-        require(signer == _verifier, "Invalid signature");
+        // Validate payment amount based on currency
+        PaymentLimits storage limits = currency == PaymentCurrency.ETH ? ethLimits : usdcLimits;
+        require(amount >= limits.minPayment, "Payment amount below minimum");
+        
+        uint256 maxAllowed = isVerifiedArtist[artistAddress] ? 
+            limits.verifiedMaxPayment : 
+            limits.maxPayment;
+        require(amount <= maxAllowed, "Payment amount above maximum");
 
-        // Calculate amounts
-        uint256 craftiaxFee = (msg.value * craftiaxFeePercentage) / 100;
-        uint256 artistPayment = msg.value - craftiaxFee;
+        // Process payment based on currency
+        if (currency == PaymentCurrency.USD) {
+            require(msg.value == 0, "ETH not accepted for USDC payment");
+            require(usdToken.transferFrom(msg.sender, address(this), amount), "USDC transfer failed");
+        } else {
+            require(msg.value == amount, "Incorrect ETH amount");
+        }
 
-        // Update state before external calls
+        // Calculate fees
+        uint256 craftiaxFee = (amount * craftiaxFeePercentage) / 100;
+        uint256 artistPayment = amount - craftiaxFee;
+
+        // Process payments based on currency
+        if (currency == PaymentCurrency.USD) {
+            require(usdToken.transfer(artistAddress, artistPayment), "Artist USDC transfer failed");
+            require(usdToken.transfer(craftiaxAddress, craftiaxFee), "Craftiax USDC transfer failed");
+        } else {
+            (bool successArtist, ) = payable(artistAddress).call{value: artistPayment}("");
+            require(successArtist, "Failed to send ETH to artist");
+
+            (bool successCraftiax, ) = payable(craftiaxAddress).call{value: craftiaxFee}("");
+            require(successCraftiax, "Failed to send ETH to Craftiax");
+        }
+
         emit PaymentProcessed(
             artistAddress, 
             artistPayment, 
             craftiaxFee,
             isVerifiedArtist[artistAddress]
         );
-
-        // External calls last
-        (bool successArtist, ) = payable(artistAddress).call{value: artistPayment}("");
-        require(successArtist, "Failed to send payment to artist");
-
-        (bool successCraftiax, ) = payable(craftiaxAddress).call{value: craftiaxFee}("");
-        require(successCraftiax, "Failed to send payment to Craftiax");
     }
 
     function updateCraftiaxAddress(address newAddress) external onlyOwner {
@@ -197,6 +252,23 @@ contract ArtistPayment is ReentrancyGuard, Ownable, EIP712 {
         uint256 currentNonce = _nonces[user];
         _nonces[user] = type(uint256).max;
         emit NonceInvalidated(user, currentNonce);
+    }
+
+    // Add function to update USDC payment limits
+    function updateUSDCPaymentLimits(
+        uint256 newGeneralMin,
+        uint256 newGeneralMax,
+        uint256 newVerifiedMax
+    ) external onlyOwner {
+        require(newGeneralMin > 0, "General min must be greater than 0");
+        require(newGeneralMax > newGeneralMin, "General max must be greater than min");
+        require(newVerifiedMax > newGeneralMax, "Verified max must be greater than general max");
+        
+        usdcLimits.minPayment = newGeneralMin;
+        usdcLimits.maxPayment = newGeneralMax;
+        usdcLimits.verifiedMaxPayment = newVerifiedMax;
+        
+        emit PaymentLimitsUpdated(newGeneralMin, newGeneralMax, newVerifiedMax);
     }
 
     receive() external payable {}

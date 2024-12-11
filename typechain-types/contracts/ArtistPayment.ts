@@ -32,6 +32,7 @@ export interface ArtistPaymentInterface extends Interface {
       | "craftiaxAddress"
       | "craftiaxFeePercentage"
       | "eip712Domain"
+      | "ethLimits"
       | "generalMaxPayment"
       | "generalMinPayment"
       | "invalidateNonce"
@@ -46,7 +47,10 @@ export interface ArtistPaymentInterface extends Interface {
       | "updateCraftiaxAddress"
       | "updateFeePercentage"
       | "updatePaymentLimits"
+      | "updateUSDCPaymentLimits"
       | "updateVerifier"
+      | "usdToken"
+      | "usdcLimits"
       | "verifiedMaxPayment"
   ): FunctionFragment;
 
@@ -87,6 +91,7 @@ export interface ArtistPaymentInterface extends Interface {
     functionFragment: "eip712Domain",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "ethLimits", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "generalMaxPayment",
     values?: undefined
@@ -107,7 +112,7 @@ export interface ArtistPaymentInterface extends Interface {
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "payArtist",
-    values: [AddressLike, BigNumberish, BytesLike]
+    values: [AddressLike, BigNumberish, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "renounceOwnership",
@@ -138,8 +143,17 @@ export interface ArtistPaymentInterface extends Interface {
     values: [BigNumberish, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "updateUSDCPaymentLimits",
+    values: [BigNumberish, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "updateVerifier",
     values: [AddressLike]
+  ): string;
+  encodeFunctionData(functionFragment: "usdToken", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "usdcLimits",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "verifiedMaxPayment",
@@ -170,6 +184,7 @@ export interface ArtistPaymentInterface extends Interface {
     functionFragment: "eip712Domain",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "ethLimits", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "generalMaxPayment",
     data: BytesLike
@@ -218,9 +233,15 @@ export interface ArtistPaymentInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "updateUSDCPaymentLimits",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "updateVerifier",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "usdToken", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "usdcLimits", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "verifiedMaxPayment",
     data: BytesLike
@@ -429,6 +450,18 @@ export interface ArtistPayment extends BaseContract {
     "view"
   >;
 
+  ethLimits: TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint] & {
+        minPayment: bigint;
+        maxPayment: bigint;
+        verifiedMaxPayment: bigint;
+      }
+    ],
+    "view"
+  >;
+
   generalMaxPayment: TypedContractMethod<[], [bigint], "view">;
 
   generalMinPayment: TypedContractMethod<[], [bigint], "view">;
@@ -446,7 +479,12 @@ export interface ArtistPayment extends BaseContract {
   owner: TypedContractMethod<[], [string], "view">;
 
   payArtist: TypedContractMethod<
-    [artistAddress: AddressLike, deadline: BigNumberish, signature: BytesLike],
+    [
+      artistAddress: AddressLike,
+      amount: BigNumberish,
+      currency: BigNumberish,
+      deadline: BigNumberish
+    ],
     [void],
     "payable"
   >;
@@ -493,10 +531,34 @@ export interface ArtistPayment extends BaseContract {
     "nonpayable"
   >;
 
+  updateUSDCPaymentLimits: TypedContractMethod<
+    [
+      newGeneralMin: BigNumberish,
+      newGeneralMax: BigNumberish,
+      newVerifiedMax: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+
   updateVerifier: TypedContractMethod<
     [newVerifier: AddressLike],
     [void],
     "nonpayable"
+  >;
+
+  usdToken: TypedContractMethod<[], [string], "view">;
+
+  usdcLimits: TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint] & {
+        minPayment: bigint;
+        maxPayment: bigint;
+        verifiedMaxPayment: bigint;
+      }
+    ],
+    "view"
   >;
 
   verifiedMaxPayment: TypedContractMethod<[], [bigint], "view">;
@@ -538,6 +600,19 @@ export interface ArtistPayment extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "ethLimits"
+  ): TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint] & {
+        minPayment: bigint;
+        maxPayment: bigint;
+        verifiedMaxPayment: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "generalMaxPayment"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
@@ -558,7 +633,12 @@ export interface ArtistPayment extends BaseContract {
   getFunction(
     nameOrSignature: "payArtist"
   ): TypedContractMethod<
-    [artistAddress: AddressLike, deadline: BigNumberish, signature: BytesLike],
+    [
+      artistAddress: AddressLike,
+      amount: BigNumberish,
+      currency: BigNumberish,
+      deadline: BigNumberish
+    ],
     [void],
     "payable"
   >;
@@ -600,8 +680,35 @@ export interface ArtistPayment extends BaseContract {
     "nonpayable"
   >;
   getFunction(
+    nameOrSignature: "updateUSDCPaymentLimits"
+  ): TypedContractMethod<
+    [
+      newGeneralMin: BigNumberish,
+      newGeneralMax: BigNumberish,
+      newVerifiedMax: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "updateVerifier"
   ): TypedContractMethod<[newVerifier: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "usdToken"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "usdcLimits"
+  ): TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint] & {
+        minPayment: bigint;
+        maxPayment: bigint;
+        verifiedMaxPayment: bigint;
+      }
+    ],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "verifiedMaxPayment"
   ): TypedContractMethod<[], [bigint], "view">;
