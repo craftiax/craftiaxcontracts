@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "./EventTicketBase.sol";
+import "@prb/math/src/Common.sol";
 
 contract EventTicketManager is EventTicketBase {
     // Rate limiting
@@ -83,9 +84,10 @@ contract EventTicketManager is EventTicketBase {
         uint256 tokenId = uint256(keccak256(abi.encode(eventId, tierId)));
         
         if (event_.currency == PaymentCurrency.USD) {
-            uint256 scaledPrice = (tier.price * (10 ** USDC_DECIMALS)) / (10 ** PRICE_DECIMALS);
+            uint256 scaledPrice = _scaleAmount(tier.price);
+            require(scaledPrice > 0, "Scaled amount too small");
             require(_processPayment(scaledPrice, PaymentCurrency.USD, msg.sender), "USDC payment failed");
-            _handleCommissionAndPayment(event_, tier.price, PaymentCurrency.USD);
+            _handleCommissionAndPayment(event_, scaledPrice, PaymentCurrency.USD);
         } else {
             require(msg.value == tier.price, "Incorrect ETH amount");
             _handleCommissionAndPayment(event_, msg.value, PaymentCurrency.ETH);
@@ -99,15 +101,23 @@ contract EventTicketManager is EventTicketBase {
 
     function _handleCommissionAndPayment(
         Event storage event_,
-        uint256 amount,
+        uint256 scaledAmount,
         PaymentCurrency currency
     ) private {
-        uint256 commissionAmount = (amount * event_.commissionPercentage) / 100;
-        uint256 creatorAmount = amount - commissionAmount;
+        uint256 commissionAmount;
+        uint256 creatorAmount;
+        
+        unchecked {
+            // Safe because commissionPercentage is <= 100
+            commissionAmount = (scaledAmount * event_.commissionPercentage) / 100;
+            creatorAmount = scaledAmount - commissionAmount;
+        }
 
         if (currency == PaymentCurrency.USD) {
-            require(usdToken.transfer(event_.commissionAddress, commissionAmount), "Commission USDC transfer failed");
-            require(usdToken.transfer(event_.organizer, creatorAmount), "Creator USDC transfer failed");
+            require(usdToken.transfer(event_.commissionAddress, commissionAmount), 
+                "Commission USDC transfer failed");
+            require(usdToken.transfer(event_.organizer, creatorAmount), 
+                "Creator USDC transfer failed");
         } else {
             (bool commissionSuccess, ) = payable(event_.commissionAddress).call{value: commissionAmount}("");
             require(commissionSuccess, "Commission ETH transfer failed");
@@ -152,6 +162,20 @@ contract EventTicketManager is EventTicketBase {
             tier.soldCount,
             tier.isActive
         );
+    }
+
+    function updateTierPrice(
+        string memory eventId,
+        string memory tierId,
+        uint256 newPrice
+    ) external {
+        Event storage event_ = events[eventId];
+        require(event_.organizer == msg.sender, "Not event organizer");
+        require(event_.isActive, "Event not active");
+        
+        EventTier storage tier = event_.tiers[tierId];
+        require(tier.isActive, "Tier not active");
+        tier.price = newPrice;
     }
 
     function eventExists(string memory eventId) public view returns (bool) {

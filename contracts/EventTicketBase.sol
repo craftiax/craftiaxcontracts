@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@prb/math/src/Common.sol";
 
 contract EventTicketBase is ERC1155, Ownable, ReentrancyGuard, Pausable {
     // Enums
@@ -90,18 +91,27 @@ contract EventTicketBase is ERC1155, Ownable, ReentrancyGuard, Pausable {
                block.timestamp <= event_.endTime;
     }
 
+    function _scaleAmount(uint256 amount) internal virtual view returns (uint256) {
+        if (USDC_DECIMALS <= PRICE_DECIMALS) {
+            return amount / (10 ** (PRICE_DECIMALS - USDC_DECIMALS));
+        } else {
+            return amount * (10 ** (USDC_DECIMALS - PRICE_DECIMALS));
+        }
+    }
+
     function _processPayment(
-        uint256 amount,
+        uint256 scaledAmount,
         PaymentCurrency currency,
         address sender
     ) internal returns (bool) {
+        require(sender != address(0), "Invalid sender address");
+        require(scaledAmount > 0, "Amount must be greater than 0");
+
         if (currency == PaymentCurrency.USD) {
-            uint256 scaledAmount = USDC_DECIMALS >= PRICE_DECIMALS ? 
-                amount * (10**(USDC_DECIMALS - PRICE_DECIMALS)) :
-                amount / (10**(PRICE_DECIMALS - USDC_DECIMALS));
+            require(usdToken.balanceOf(sender) >= scaledAmount, "Insufficient USDC balance");
             return usdToken.transferFrom(sender, address(this), scaledAmount);
         } else if (currency == PaymentCurrency.ETH) {
-            return msg.value == amount;
+            return msg.value == scaledAmount;
         }
         revert("Invalid currency");
     }

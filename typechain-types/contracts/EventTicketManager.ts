@@ -45,6 +45,7 @@ export interface EventTicketManagerInterface extends Interface {
       | "setApprovalForAll"
       | "supportsInterface"
       | "transferOwnership"
+      | "updateTierPrice"
       | "uri"
       | "usdToken"
       | "withdrawPlatformFees"
@@ -152,6 +153,10 @@ export interface EventTicketManagerInterface extends Interface {
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "updateTierPrice",
+    values: [string, string, BigNumberish]
+  ): string;
   encodeFunctionData(functionFragment: "uri", values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: "usdToken", values?: undefined): string;
   encodeFunctionData(
@@ -221,6 +226,10 @@ export interface EventTicketManagerInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "transferOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "updateTierPrice",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "uri", data: BytesLike): Result;
@@ -645,6 +654,12 @@ export interface EventTicketManager extends BaseContract {
     "nonpayable"
   >;
 
+  updateTierPrice: TypedContractMethod<
+    [eventId: string, tierId: string, newPrice: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
   uri: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
 
   usdToken: TypedContractMethod<[], [string], "view">;
@@ -795,6 +810,13 @@ export interface EventTicketManager extends BaseContract {
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "updateTierPrice"
+  ): TypedContractMethod<
+    [eventId: string, tierId: string, newPrice: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "uri"
   ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;

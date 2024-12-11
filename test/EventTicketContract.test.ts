@@ -124,4 +124,92 @@ describe("EventTicketContract", function () {
       expect(tierDetails.soldCount).to.equal(0);
     });
   });
+
+  describe("Price Scaling", function () {
+    it("Should handle USDC decimal scaling correctly", async function () {
+        // Set start time further in future (3600 seconds = 1 hour)
+        const startTime = Math.floor(Date.now() / 1000) + 3600; 
+        const endTime = startTime + 3600; // End time 1 hour after start
+        const price = ethers.parseEther("0.1");
+        
+        await eventTicket.connect(organizer).createEvent(
+            MOCK_EVENT_ID,
+            "Test Event",
+            "Test Description",
+            startTime,
+            endTime,
+            [MOCK_TIER_ID],
+            [price],
+            [100],
+            1, // USD payment
+            10,
+            owner.address
+        );
+
+        // Fast forward time to just after start time
+        await ethers.provider.send("evm_setNextBlockTimestamp", [startTime + 1]);
+        await ethers.provider.send("evm_mine");
+
+        // Calculate expected USDC amount (6 decimals)
+        const expectedUSDC = price / BigInt(10n ** 12n);
+        
+        // Check USDC balance before
+        const balanceBefore = await mockUSDC.balanceOf(buyer.address);
+        
+        // Mint ticket
+        await eventTicket.connect(buyer).mintTicket(
+            MOCK_EVENT_ID,
+            MOCK_TIER_ID,
+            buyer.address
+        );
+
+        // Check USDC balance after
+        const balanceAfter = await mockUSDC.balanceOf(buyer.address);
+        expect(balanceBefore - balanceAfter).to.equal(expectedUSDC);
+    });
+
+    it("Should revert on price too small after scaling", async function () {
+        // Get current block timestamp
+        const latestBlock = await ethers.provider.getBlock('latest');
+        const currentTimestamp = latestBlock!.timestamp;
+        
+        // Set event times relative to current block
+        const startTime = currentTimestamp + 3600; // 1 hour from current block
+        const endTime = startTime + 3600; // 2 hours from current block
+        
+        // Calculate a price that will definitely scale to 0
+        // USDC has 6 decimals, ETH has 18 decimals
+        // We need a price that's valid (>= 0.0001 ETH) but scales to 0 in USDC
+        const smallPrice = BigInt(1e11); // This is below MIN_PRICE but above 0 when scaled
+        
+        // Create event with a valid minimum price
+        await eventTicket.connect(organizer).createEvent(
+            MOCK_EVENT_ID,
+            "Test Event",
+            "Test Description",
+            startTime,
+            endTime,
+            [MOCK_TIER_ID],
+            [ethers.parseEther("0.0001")], // Use MIN_PRICE for creation
+            [100],
+            1, // USD payment
+            10,
+            owner.address
+        );
+
+        // Update the price to our small amount that will scale to 0
+        await eventTicket.connect(organizer).updateTierPrice(MOCK_EVENT_ID, MOCK_TIER_ID, smallPrice);
+
+        // Fast forward time to just after start time
+        await ethers.provider.send("evm_setNextBlockTimestamp", [startTime + 1]);
+        await ethers.provider.send("evm_mine");
+
+        // Attempt to mint ticket - should fail because the scaled amount will be 0
+        await expect(eventTicket.connect(buyer).mintTicket(
+            MOCK_EVENT_ID,
+            MOCK_TIER_ID,
+            buyer.address
+        )).to.be.revertedWith("Scaled amount too small");
+    });
+  });
 }); 
