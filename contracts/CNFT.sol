@@ -34,11 +34,13 @@ contract CraftiaxNFT is
     
     // URI related storage
     string private _baseTokenURI;
-    mapping(uint256 => bool) private _usedTokenIds;
+    mapping(uint256 => bool) private _burnedTokenIds;
 
     bytes32 private constant MINT_TYPEHASH = keccak256("SafeMint(address to,string uri,uint256 nonce,uint256 deadline)");
     mapping(address => uint256) private _nonces;
     address private _verifier;
+
+    uint256 private constant MAX_SUPPLY = 1;
 
     constructor(
         address initialOwner,
@@ -65,6 +67,7 @@ contract CraftiaxNFT is
         nonReentrant 
         whenNotPaused 
     {
+        require(_nextTokenId < MAX_SUPPLY, "Max supply reached");
         require(block.timestamp <= deadline, "Signature expired");
         require(to != address(0), "Invalid recipient address");
         require(bytes(uri).length > 0, "URI cannot be empty");
@@ -82,11 +85,8 @@ contract CraftiaxNFT is
         address signer = ECDSA.recover(hash, signature);
         require(signer == _verifier, "Invalid signature");
 
-        uint256 tokenId = _nextTokenId;
-        require(!_usedTokenIds[tokenId], "Token ID already used");
-        
-        _nextTokenId++;
-        _usedTokenIds[tokenId] = true;
+        uint256 tokenId = _nextTokenId++;
+        require(!_burnedTokenIds[tokenId], "Token ID was burned");
         
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
@@ -152,11 +152,11 @@ contract CraftiaxNFT is
         // Remove token URI before burning
         _setTokenURI(tokenId, "");
         
+        // Mark token as burned
+        _burnedTokenIds[tokenId] = true;
+        
         // Burn the token
         _burn(tokenId);
-        
-        // Mark token ID as no longer used
-        _usedTokenIds[tokenId] = false;
         
         emit TokenBurned(spender, tokenId);
     }
