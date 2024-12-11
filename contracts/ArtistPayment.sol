@@ -56,7 +56,7 @@ contract ArtistPayment is ReentrancyGuard, Ownable, EIP712 {
 
     // Add rate limiting
     mapping(address => uint256) private lastPaymentTimestamp;
-    uint256 private constant PAYMENT_COOLDOWN = 1 minutes;
+    uint256 private constant PAYMENT_COOLDOWN = 60; // 60 seconds = 1 minute
 
     constructor(address initialOwner) 
         Ownable(initialOwner) 
@@ -72,9 +72,21 @@ contract ArtistPayment is ReentrancyGuard, Ownable, EIP712 {
         uint256 deadline,
         bytes memory signature
     ) external payable nonReentrant {
-        // Verify deadline
-        require(block.timestamp <= deadline, "Signature expired");
+        // Add rate limiting check
+        require(
+            block.timestamp >= lastPaymentTimestamp[msg.sender] + PAYMENT_COOLDOWN,
+            "Too many requests"
+        );
         
+        // Validate inputs
+        require(block.timestamp <= deadline, "Signature expired");
+        require(msg.value >= generalMinPayment, "Payment amount below minimum");
+        require(artistAddress != address(0), "Invalid artist address");
+        require(artistAddress != craftiaxAddress, "Artist cannot be Craftiax address");
+
+        // Update rate limiting timestamp
+        lastPaymentTimestamp[msg.sender] = block.timestamp;
+
         // Verify signature
         bytes32 structHash = keccak256(abi.encode(
             PAYMENT_TYPEHASH,
@@ -89,38 +101,24 @@ contract ArtistPayment is ReentrancyGuard, Ownable, EIP712 {
         address signer = ECDSA.recover(hash, signature);
         require(signer == _verifier, "Invalid signature");
 
-        require(msg.value >= generalMinPayment, "Payment amount below minimum");
-        require(artistAddress != address(0), "Invalid artist address");
-        require(artistAddress != craftiaxAddress, "Artist cannot be Craftiax address");
-
-        // Check payment limits based on artist status
-        if (isVerifiedArtist[artistAddress]) {
-            require(msg.value <= verifiedMaxPayment, "Payment exceeds verified limit");
-        } else {
-            require(msg.value <= generalMaxPayment, "Payment exceeds general limit");
-        }
-
+        // Calculate amounts
         uint256 craftiaxFee = (msg.value * craftiaxFeePercentage) / 100;
         uint256 artistPayment = msg.value - craftiaxFee;
 
-        // Transfer to artist first (favors artist in case of failure)
-        (bool successArtist, ) = payable(artistAddress).call{
-            value: artistPayment
-        }("");
-        require(successArtist, "Failed to send payment to artist");
-
-        // Then transfer fee to Craftiax
-        (bool successCraftiax, ) = payable(craftiaxAddress).call{
-            value: craftiaxFee
-        }("");
-        require(successCraftiax, "Failed to send payment to Craftiax");
-
+        // Update state before external calls
         emit PaymentProcessed(
             artistAddress, 
             artistPayment, 
             craftiaxFee,
             isVerifiedArtist[artistAddress]
         );
+
+        // External calls last
+        (bool successArtist, ) = payable(artistAddress).call{value: artistPayment}("");
+        require(successArtist, "Failed to send payment to artist");
+
+        (bool successCraftiax, ) = payable(craftiaxAddress).call{value: craftiaxFee}("");
+        require(successCraftiax, "Failed to send payment to Craftiax");
     }
 
     function updateCraftiaxAddress(address newAddress) external onlyOwner {
@@ -148,10 +146,14 @@ contract ArtistPayment is ReentrancyGuard, Ownable, EIP712 {
         emit ArtistVerificationStatusUpdated(artistAddress, status);
     }
 
+    // Add array size limit for batch operations
+    uint256 private constant MAX_BATCH_SIZE = 100;
+
     function setVerificationStatusBatch(address[] calldata artists, bool status)
         external
         onlyOwner
     {
+        require(artists.length <= MAX_BATCH_SIZE, "Batch too large");
         for (uint256 i = 0; i < artists.length; i++) {
             require(artists[i] != address(0), "Invalid artist address");
             if (isVerifiedArtist[artists[i]] != status) {

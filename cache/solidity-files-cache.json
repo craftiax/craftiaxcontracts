@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\craftiax_mvp\\Smart contracts\\contracts\\ArtistPayment.sol": {
-      "lastModificationDate": 1733466660381,
-      "contentHash": "0a99a4e68887df9013f832a292138ed1",
+      "lastModificationDate": 1733894202410,
+      "contentHash": "a6bf5d0ea9c5799369f63dffa4c12817",
       "sourceName": "contracts/ArtistPayment.sol",
       "solcConfig": {
         "version": "0.8.20",
