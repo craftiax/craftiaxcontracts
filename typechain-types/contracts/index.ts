@@ -3,5 +3,8 @@
 /* eslint-disable */
 import type * as cnftSol from "./CNFT.sol";
 export type { cnftSol };
+import type * as mocks from "./mocks";
+export type { mocks };
 export type { ArtistPayment } from "./ArtistPayment";
-export type { EventTicketContract } from "./EventTicketContract";
+export type { EventTicketBase } from "./EventTicketBase";
+export type { EventTicketManager } from "./EventTicketManager";

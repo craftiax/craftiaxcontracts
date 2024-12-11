@@ -2,5 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as cnftSol from "./CNFT.sol";
+export * as mocks from "./mocks";
 export { ArtistPayment__factory } from "./ArtistPayment__factory";
-export { EventTicketContract__factory } from "./EventTicketContract__factory";
+export { EventTicketBase__factory } from "./EventTicketBase__factory";
+export { EventTicketManager__factory } from "./EventTicketManager__factory";
