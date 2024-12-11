@@ -43,7 +43,7 @@ contract EventTicketBase is ERC1155, Ownable, ReentrancyGuard, Pausable {
     uint256 internal immutable MIN_PRICE;
     uint256 internal immutable MAX_PRICE;
     uint8 internal immutable USDC_DECIMALS;
-    uint256 internal constant PRICE_DECIMALS = 18;
+    uint8 internal constant PRICE_DECIMALS = 18;
     
     IERC20 public immutable usdToken;
     mapping(string => Event) internal events;
@@ -92,10 +92,11 @@ contract EventTicketBase is ERC1155, Ownable, ReentrancyGuard, Pausable {
     }
 
     function _scaleAmount(uint256 amount) internal virtual view returns (uint256) {
-        if (USDC_DECIMALS <= PRICE_DECIMALS) {
-            return amount / (10 ** (PRICE_DECIMALS - USDC_DECIMALS));
+        int256 decimalDiff = int256(uint256(USDC_DECIMALS)) - int256(uint256(PRICE_DECIMALS));
+        if (decimalDiff < 0) {
+            return amount / (10 ** uint256(-decimalDiff));
         } else {
-            return amount * (10 ** (USDC_DECIMALS - PRICE_DECIMALS));
+            return amount * (10 ** uint256(decimalDiff));
         }
     }
 
